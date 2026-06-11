@@ -1,5 +1,5 @@
 import telebot
-from telebot import types
+from telebot iimporttypes
 import sqlite3
 import random
 import string
@@ -10,9 +10,10 @@ import os
 # 🔐 আপনার ফাইনাল কনফিগারেশন সেকশন (১০০% সিকিউর ও নিখুঁত)
 # =====================================================================
 
-BOT_TOKEN = "8845611723:AAFUbesq-X9znNZOswPwUx1ugqqvLXvaxRU"
+# স্ক্রিনশট থেকে যাচাইকৃত এক্কেবারে সঠিক টোকেন ও অ্যাডমিন আইডি
+BOT_TOKEN = "8845611723:AAFUbesq-X9znNZOswPwUx1uqqvvLXvaxRU"
 CHANNEL_USERNAME = "@MicroEarnGlobalOfficial"
-ADMIN_ID = 7981929863  
+ADMIN_ID = 7736281687  
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -23,26 +24,21 @@ def init_db():
     conn = sqlite3.connect("microearn_global.db")
     cursor = conn.cursor()
     
-    # ইউজার টেবিল (ভাষা ও রেফারেল ট্র্যাকিং এড করা হয়েছে)
     cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                       (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0.0, 
                        pending_balance REAL DEFAULT 0.0, lang TEXT DEFAULT 'BN', referred_by INTEGER DEFAULT 0)''')
     
-    # সাবমিশন টেবিল (2FA, কুকিজ ও স্ট্যাটাস ফিল্টার)
     cursor.execute('''CREATE TABLE IF NOT EXISTS submissions 
                       (sub_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, 
                        acc_type TEXT, username TEXT, password TEXT, tfa_key TEXT, cookies TEXT DEFAULT 'N/A', status TEXT, timestamp INTEGER)''')
     
-    # উইথড্র টেবিল 
     cursor.execute('''CREATE TABLE IF NOT EXISTS withdraws 
                       (w_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, 
                        method TEXT, amount REAL, address TEXT, txn_id TEXT DEFAULT 'N/A', status TEXT, timestamp INTEGER)''')
     
-    # ডাইনামিক রেট টেবিল 
     cursor.execute('''CREATE TABLE IF NOT EXISTS rates 
                       (platform TEXT PRIMARY KEY, price REAL, hold_hours INTEGER)''')
     
-    # গ্লোবাল সেটিংস টেবিল (ডলার রেট লাইভ কন্ট্রোল করার জন্য)
     cursor.execute('''CREATE TABLE IF NOT EXISTS settings 
                       (key TEXT PRIMARY KEY, value TEXT)''')
     
@@ -61,7 +57,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# 🎲 অটোমেটিক প্রফেশনাল ডাটা জেনারেটর (সিরিয়াল মেইল ও পাসওয়ার্ড লক)
 def generate_task_credentials(platform):
     first_names = ["Anik", "Sujon", "Rakibul", "Kamrul", "Arif", "Sajid", "Tanvir", "Mizan", "Alex", "Emma"]
     last_names = ["Khan", "Ahmed", "Hasan", "Islam", "Rahman", "Chowdhury", "Smith", "Johnson"]
@@ -76,7 +71,6 @@ def generate_task_credentials(platform):
     recovery = f"{generated_user.split('@')[0]}@microearnglobal.com"
     return full_name, generated_user, generated_pass, recovery
 
-# 🔍 চ্যানেল জয়েন চেক
 def is_user_joined(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -84,7 +78,6 @@ def is_user_joined(user_id):
     except:
         return False
 
-# 🏁 /start কমান্ড (অটোমেটিক স্মার্ট রেফারেল ডিটেকশন সিস্টেম)
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.from_user.id
@@ -111,7 +104,6 @@ def start_command(message):
                types.InlineKeyboardButton("🇺🇸 English", callback_data="setlang_EN"))
     bot.send_message(user_id, "🌍 Select Your Language / ভাষা সিলেক্ট করুন:", reply_markup=markup)
 
-# 👑 সুপার পাওয়ারফুল অ্যাডমিন কন্ট্রোল প্যানেল (কোড না ছুঁয়ে সব লাইভ কন্ট্রোল)
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     if message.from_user.id != ADMIN_ID: return
@@ -192,7 +184,6 @@ def review_withdraws(message):
                types.InlineKeyboardButton("❌ Cancel Payment", callback_data=f"pcancel_{w_id}_{u_id}"))
     bot.send_message(ADMIN_ID, pay_msg, parse_mode="Markdown", reply_markup=markup)
 
-# 🔄 ইনলাইন বাটন কন্ট্রোলার (ডাটা ভ্যালিডেশন ফিল্টার সহ)
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     user_id = call.from_user.id
@@ -224,13 +215,15 @@ def handle_callbacks(call):
             bot.answer_callback_query(call.id, "❌ Join Required!", show_alert=True)
             
     elif call.data.startswith("g_done_"):
-        _, _, username, password, recovery = call.data.split("_")
+        parts = call.data.split("_")
+        username, password, recovery = parts[2], parts[3], parts[4]
         bot.delete_message(user_id, call.message.message_id)
         msg = bot.send_message(user_id, "✍️ **ভেরিফিকেশনের জন্য জিমেইল অ্যাকাউন্টটি হুবহু এখানে টাইপ করে সেন্ড করুন:**")
         bot.register_next_step_handler(msg, verify_and_save_gmail, username, password, recovery)
 
     elif call.data.startswith("tfa_done_"):
-        _, platform, username, password = call.data.split("_")
+        parts = call.data.split("_")
+        platform, username, password = parts[1], parts[2], parts[3]
         bot.delete_message(user_id, call.message.message_id)
         msg = bot.send_message(user_id, f"🔑 **আপনার অ্যাকাউন্টের ২FA Secret Key-টি পেস্ট করুন:**")
         bot.register_next_step_handler(msg, ask_for_cookies, platform, username, password)
@@ -261,11 +254,9 @@ def handle_callbacks(call):
         cursor.execute("SELECT price FROM rates WHERE platform = ?", (platform,))
         price = cursor.fetchone()[0]
         
-        # ১. ওয়ার্কারকে মূল ব্যালেন্স দেওয়া
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (price, target_user))
         cursor.execute("UPDATE submissions SET status = 'Approved' WHERE sub_id = ?", (sub_id,))
         
-        # ২. স্পন্সরকে অটোমেটিক ৫০ পয়সা রেফারেল কমিশন ট্রান্সফার মেকানিজম
         cursor.execute("SELECT referred_by FROM users WHERE user_id = ?", (target_user,))
         ref_row = cursor.fetchone()
         if ref_row and ref_row[0] > 0:
@@ -318,7 +309,6 @@ def handle_callbacks(call):
 
     conn.close()
 
-# 🔒 স্মার্ট ম্যাচিং ভ্যালিডেশন ফিল্টার
 def verify_and_save_gmail(message, sys_user, sys_pass, sys_rec):
     user_id = message.from_user.id
     input_text = message.text.strip()
@@ -375,7 +365,6 @@ def save_social_task(message, platform, username, password, tfa_key, cookies_tex
     
     bot.send_message(user_id, "✅ **আপনার অ্যাকাউন্ট সিকিউর ডাটা সহ লক করা হয়েছে!** রিভিউর জন্য অপেক্ষা করুন।")
 
-# 💳 প্রফেশনাল উইথড্র ক্যাশআউট ক্যালকুলেশন ইঞ্জিন
 def process_withdraw_amount(message, method, usd_rate, lang):
     user_id = message.from_user.id
     try:
@@ -389,7 +378,6 @@ def process_withdraw_amount(message, method, usd_rate, lang):
     cursor.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
     balance = cursor.fetchone()[0]
     
-    # বাইনান্সের জন্য ডাইনামিক কারেন্সি কনভার্সন
     final_deduct_bdt = req_amount * usd_rate if method == "Binance" else req_amount
     
     if final_deduct_bdt > balance:
@@ -450,7 +438,6 @@ def complete_payout(message, w_id, target_user):
     user_msg = (f"✅ **পেমেন্ট সফলভাবে পাঠানো হয়েছে!**\n\n💰 পরিমাণ: ৳{amount:.2f}\n💳 মেথড: {method}\n📱 ওয়ালেট: `{address}`\n🆔 **Transaction ID:** `{txn_id}`\n\nআমাদের সাথে থাকার জন্য ধন্যবাদ! ❤️")
     bot.send_message(target_user, user_msg, parse_mode="Markdown")
 
-# 📱 মেইন হোম মেনু লেআউট
 def send_main_menu(user_id, lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if lang == 'BN':
@@ -465,7 +452,6 @@ def send_main_menu(user_id, lang):
         markup.add("🌐 Language")
     bot.send_message(user_id, "👇 কাজ শুরু করতে অপশন বেছে নিন:" if lang == 'BN' else "👇 Select an option to start working:", reply_markup=markup)
 
-# 📬 টেক্সট বাটন কন্ট্রোলার (স্মার্ট গণিত ও রিয়েল-টাইম ড্যাশবোর্ড ইন্টিগ্রেশন)
 @bot.message_handler(func=lambda message: True)
 def handle_text_menus(message):
     user_id = message.from_user.id
@@ -479,7 +465,6 @@ def handle_text_menus(message):
     lang = user_data[0] if user_data else 'BN'
     main_bal = user_data[1] if user_data else 0.0
     
-    # পেন্ডিং ব্যালেন্স ডাইনামিক ক্যালকুলেশন
     cursor.execute("SELECT SUM(rates.price) FROM submissions JOIN rates ON submissions.acc_type = rates.platform WHERE submissions.user_id = ? AND submissions.status = 'Pending'", (user_id,))
     pending_row = cursor.fetchone()
     pending_bal = pending_row[0] if pending_row[0] else 0.0
@@ -491,7 +476,6 @@ def handle_text_menus(message):
         msg += f"----------------------------------"
         bot.send_message(user_id, msg, parse_mode="Markdown")
 
-    # 📊 অংক ও রিয়েল-টাইম ড্যাশবোর্ড হিস্টোরি (My Report)
     elif text in ["📊 আমার রিপোর্ট", "📊 My Report"]:
         cursor.execute("SELECT COUNT(*) FROM submissions WHERE user_id = ? AND status = 'Approved'", (user_id,))
         app_cnt = cursor.fetchone()[0]
@@ -531,7 +515,7 @@ def handle_text_menus(message):
         if lang == 'BN':
             ref_msg = (f"🔗 **আপনার ইউনিক রেফারেল লিংক:**\n`{ref_url}`\n\n"
                        f"👥 আপনার রেফারে মোট জয়েন করেছে: `{total_refs}` জন\n"
-                       f"🎁 **বোনাস মেকানিজম:** আপনার লিংক দিয়ে কেউ কাজ করলে প্রতিটি ভেরিফাইড কাজের জন্য আপনার ওয়ালেটে আজীবন **৳০.৫০** অটো-কমিশন যোগ হবে!")
+                       f"🎁 **বোনাস মেকানিজম:** আপনার লিংক দিয়ে কেউ কাজ করলে প্রতিটি ভেরিফাইড কাজের জন্য আপনার ওয়াлеটে আজীবন **৳০.৫০** অটো-কমিশন যোগ হবে!")
         else:
             ref_msg = (f"🔗 **Your Unique Referral Link:**\n`{ref_url}`\n\n"
                        f"👥 Total Referred Users: `{total_refs}`\n"
@@ -605,6 +589,4 @@ def handle_text_menus(message):
 
 if __name__ == "__main__":
     init_db()
-    port = int(os.environ.get("PORT", 5000))
-    print(f"MicroEarn Global Power Engine V2-Pro is active on port {port}...")
-    bot.polling(none_stop=True)
+    bot.infinity_polling()
